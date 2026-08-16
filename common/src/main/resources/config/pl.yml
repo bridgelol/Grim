@@ -220,11 +220,7 @@ max-ping-out-of-flying: 1000
 max-ping-firework-boost: 1000
 
 # Znaczniki schematu — zmieniaj tylko jeśli wiesz, co robisz.
-#   packet-listeners:
-    send-checks: true
-    send-disabled-worlds: []
-
-config-flavor:  V2 = build Grim 2.x, V3 = Grim 3.x. Wtyczka odmawia
+#   config-flavor:  V2 = build Grim 2.x, V3 = Grim 3.x. Wtyczka odmawia
 #                   wczytania konfiguracji, której flavor nie zgadza się z jej
 #                   buildem; config V3 otwarty przez jar V2 natychmiast się
 #                   nie powiedzie, zamiast po cichu scalać się w niewłaściwe
@@ -242,6 +238,14 @@ config-flavor:  V2 = build Grim 2.x, V3 = Grim 3.x. Wtyczka odmawia
 # innego niż LuckPerms, który zmienia uprawnienia na żywo.
 # Ustaw -1, aby wyłączyć odpytywanie. Ustaw wartość dodatnią, aby odświeżać co X ticków.
 update-permission-ticks: -1
+
+# Outbound CheckManager dispatch. Receive-side checks and movement prediction
+# are unaffected. Leave send-checks true on PvP worlds.
+packet-listeners:
+    send-checks: true
+    # Packet-tracked world names (and the suffix after ':' if namespaced).
+    # Example for an AFK world: [ "lifesteal_afk" ]
+    send-disabled-worlds: []
 
 config-flavor: V2
 config-version: 12

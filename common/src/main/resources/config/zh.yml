@@ -242,11 +242,7 @@ max-ping-out-of-flying: 1000
 max-ping-firework-boost: 1000
 
 # 模式标记 — 除非你清楚自己在做什么，否则不要修改。
-#   packet-listeners:
-    send-checks: true
-    send-disabled-worlds: []
-
-config-flavor:  V2 = Grim 2.x 构建，V3 = Grim 3.x。如果配置的 flavor
+#   config-flavor:  V2 = Grim 2.x 构建，V3 = Grim 3.x。如果配置的 flavor
 #                   与插件构建不一致（例如用 V2 jar 打开 V3 配置），插件会
 #                   拒绝加载并立即报错，而不是悄悄合并到错误的键。
 #   config-version: 每次发生破坏性结构变更都会递增。下次启动时，旧配置会由
@@ -258,6 +254,14 @@ config-flavor:  V2 = Grim 2.x 构建，V3 = Grim 3.x。如果配置的 flavor
 # 存在缺口，或非 LuckPerms 权限提供器会在运行中改变权限。
 # 设为 -1 可禁用轮询。设为正数则每 X tick 刷新一次。
 update-permission-ticks: -1
+
+# Outbound CheckManager dispatch. Receive-side checks and movement prediction
+# are unaffected. Leave send-checks true on PvP worlds.
+packet-listeners:
+    send-checks: true
+    # Packet-tracked world names (and the suffix after ':' if namespaced).
+    # Example for an AFK world: [ "lifesteal_afk" ]
+    send-disabled-worlds: []
 
 config-flavor: V2
 config-version: 12

@@ -220,11 +220,7 @@ max-ping-out-of-flying: 1000
 max-ping-firework-boost: 1000
 
 # Şema işaretçileri — yalnızca ne yaptığınızı biliyorsanız değiştirin.
-#   packet-listeners:
-    send-checks: true
-    send-disabled-worlds: []
-
-config-flavor:  V2 = Grim 2.x derlemesi, V3 = Grim 3.x. Eklenti, flavor'ı
+#   config-flavor:  V2 = Grim 2.x derlemesi, V3 = Grim 3.x. Eklenti, flavor'ı
 #                   kendi derlemesiyle uyuşmayan bir config'i yüklemeyi
 #                   reddeder; V3 config'i V2 jar ile açılırsa, yanlış
 #                   anahtarlara sessizce karışmak yerine hemen başarısız olur.
@@ -241,6 +237,14 @@ config-flavor:  V2 = Grim 2.x derlemesi, V3 = Grim 3.x. Eklenti, flavor'ı
 # canlı olarak değiştiren bir izin sağlayıcısı.
 # Yoklamayı devre dışı bırakmak için -1 kullanın. Her X tick'te yenilemek için pozitif bir değer kullanın.
 update-permission-ticks: -1
+
+# Outbound CheckManager dispatch. Receive-side checks and movement prediction
+# are unaffected. Leave send-checks true on PvP worlds.
+packet-listeners:
+    send-checks: true
+    # Packet-tracked world names (and the suffix after ':' if namespaced).
+    # Example for an AFK world: [ "lifesteal_afk" ]
+    send-disabled-worlds: []
 
 config-flavor: V2
 config-version: 12
