@@ -18,6 +18,7 @@ import com.github.retrooper.packetevents.protocol.item.ItemStack;
 import com.github.retrooper.packetevents.protocol.item.type.ItemType;
 import com.github.retrooper.packetevents.protocol.item.type.ItemTypes;
 import com.github.retrooper.packetevents.protocol.packettype.PacketType;
+import com.github.retrooper.packetevents.protocol.packettype.PacketTypeCommon;
 import com.github.retrooper.packetevents.protocol.player.ClientVersion;
 import com.github.retrooper.packetevents.protocol.player.DiggingAction;
 import com.github.retrooper.packetevents.protocol.player.GameMode;
@@ -334,6 +335,18 @@ public class CompensatedInventory extends Check implements PacketCheck {
             markSlotAsResyncing(place);
             place.itemStack.setAmount(place.itemStack.getAmount() - 1);
         }
+    }
+
+    @Override
+    public PacketTypeCommon[] handledSendTypes() {
+        return new PacketTypeCommon[]{
+                PacketType.Play.Server.OPEN_WINDOW,
+                PacketType.Play.Server.OPEN_HORSE_WINDOW,
+                PacketType.Play.Server.CLOSE_WINDOW,
+                PacketType.Play.Server.WINDOW_ITEMS,
+                PacketType.Play.Server.SET_PLAYER_INVENTORY,
+                PacketType.Play.Server.SET_SLOT
+        };
     }
 
     @Override

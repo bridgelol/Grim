@@ -88,6 +88,8 @@ public class CheckManager {
     private final List<BlockBreakCheck> blockBreakChecksValues;
     private final List<BlockPlaceCheck> blockPlaceChecksValues;
     private final List<PostPredictionCheck> postPredictionChecksValues;
+    private final PacketSendDispatcher sendDispatcher;
+    private final PacketSendDispatcher preViaSendDispatcher;
 
     public CheckManager(GrimPlayer player) {
         preViaPacketChecks = new ImmutableClassToInstanceMap.Builder<PacketCheck>()
@@ -293,6 +295,9 @@ public class CheckManager {
         blockBreakChecksValues = new ArrayList<>(blockBreakChecks.values());
         blockPlaceChecksValues = new ArrayList<>(blockPlaceChecks.values());
         postPredictionChecksValues = new ArrayList<>(postPredictionChecks.values());
+        sendDispatcher = new PacketSendDispatcher(
+                prePredictionChecksValues, packetChecksValues, postPredictionChecksValues, blockPlaceChecksValues);
+        preViaSendDispatcher = new PacketSendDispatcher(preViaPacketChecksValues, blockBreakChecksValues);
 
         registerBuiltInVerboseTemplates();
         init();
@@ -370,27 +375,11 @@ public class CheckManager {
     }
 
     public void onPacketSend(final PacketSendEvent packet) {
-        for (PacketCheck check : prePredictionChecksValues) {
-            check.onPacketSend(packet);
-        }
-        for (PacketCheck check : packetChecksValues) {
-            check.onPacketSend(packet);
-        }
-        for (PostPredictionCheck check : postPredictionChecksValues) {
-            check.onPacketSend(packet);
-        }
-        for (BlockPlaceCheck check : blockPlaceChecksValues) {
-            check.onPacketSend(packet);
-        }
+        sendDispatcher.dispatch(packet);
     }
 
     public void onPreViaPacketSend(final PacketSendEvent packet) {
-        for (PacketCheck check : preViaPacketChecksValues) {
-            check.onPacketSend(packet);
-        }
-        for (BlockBreakCheck check : blockBreakChecksValues) {
-            check.onPacketSend(packet);
-        }
+        preViaSendDispatcher.dispatch(packet);
     }
 
     public void onPositionUpdate(final PositionUpdate position) {

@@ -58,6 +58,11 @@ public class Post extends Check implements PacketCheck, PostPredictionCheck {
     }
 
     @Override
+    public PacketTypeCommon[] handledSendTypes() {
+        return new PacketTypeCommon[]{PacketType.Play.Server.ENTITY_ANIMATION};
+    }
+
+    @Override
     public void onPacketSend(final PacketSendEvent event) {
         if (event.getPacketType() == PacketType.Play.Server.ENTITY_ANIMATION) {
             WrapperPlayServerEntityAnimation animation = new WrapperPlayServerEntityAnimation(event);

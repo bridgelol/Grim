@@ -9,6 +9,7 @@ import ac.grim.grimac.player.GrimPlayer;
 import com.github.retrooper.packetevents.event.PacketReceiveEvent;
 import com.github.retrooper.packetevents.event.PacketSendEvent;
 import com.github.retrooper.packetevents.protocol.packettype.PacketType;
+import com.github.retrooper.packetevents.protocol.packettype.PacketTypeCommon;
 import com.github.retrooper.packetevents.wrapper.play.client.WrapperPlayClientClickWindow;
 import com.github.retrooper.packetevents.wrapper.play.client.WrapperPlayClientClickWindow.WindowClickType;
 import com.github.retrooper.packetevents.wrapper.play.server.WrapperPlayServerOpenWindow;
@@ -23,6 +24,11 @@ public class BadPacketsP extends Check implements PacketCheck {
 
     public BadPacketsP(GrimPlayer playerData) {
         super(playerData);
+    }
+
+    @Override
+    public PacketTypeCommon[] handledSendTypes() {
+        return new PacketTypeCommon[]{PacketType.Play.Server.OPEN_WINDOW};
     }
 
     @Override

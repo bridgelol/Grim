@@ -48,6 +48,7 @@ import ac.grim.grimac.utils.nmsutil.Collisions;
 import ac.grim.grimac.utils.nmsutil.GetBoundingBox;
 import ac.grim.grimac.utils.nmsutil.Materials;
 import ac.grim.grimac.utils.nmsutil.StuckSpeed;
+import ac.grim.grimac.utils.anticheat.SendPathOptimizer;
 import ac.grim.grimac.utils.viaversion.ViaVersionUtil;
 import com.github.retrooper.packetevents.PacketEvents;
 import com.github.retrooper.packetevents.event.PacketSendEvent;
@@ -282,6 +283,9 @@ public class GrimPlayer implements GrimUser {
     public final List<Movement> finalMovementsThisTick = new ObjectArrayList<>();
     public final LongSet visitedBlocks = new LongOpenHashSet();
     private @Nullable UserConnection viaUserConnection;
+    private boolean sendChecksEnabled = true;
+    private Set<String> sendDisabledWorlds = Set.of();
+    private boolean nativeProtocol; // client already on server protocol; pre-Via send encoder unused
     public boolean wasLastPredictionCompleteChecked;
     public boolean isJumping;
     public boolean lastJumping;
@@ -580,6 +584,9 @@ public class GrimPlayer implements GrimUser {
             UserConnection connection = Via.getManager().getConnectionManager().getConnectedClient(uuid);
             viaPacketTracker = connection != null ? connection.getPacketTracker() : null;
             this.viaUserConnection = connection;
+            if (connection != null) {
+                refreshNativeProtocol();
+            }
         }
 
         if (uuid != null && this.platformPlayer == null) {
@@ -929,6 +936,57 @@ public class GrimPlayer implements GrimUser {
         return platformPlayer != null ? platformPlayer.getWorld().getName() : null;
     }
 
+    public @Nullable UserConnection viaUserConnection() {
+        return viaUserConnection;
+    }
+
+    public boolean isNativeProtocol() {
+        return nativeProtocol;
+    }
+
+    public boolean shouldRunSendChecks() {
+        if (!sendChecksEnabled) {
+            return false;
+        }
+        return !isInSendDisabledWorld();
+    }
+
+    public boolean isInSendDisabledWorld() {
+        if (sendDisabledWorlds.isEmpty()) {
+            return false;
+        }
+        if (matchesSendDisabledWorld(worldName)) {
+            return true;
+        }
+        if (platformPlayer != null) {
+            try {
+                return matchesSendDisabledWorld(platformPlayer.getWorld().getName());
+            } catch (Exception ignored) {
+                // Folia: world lookup can fail off the entity thread; packet worldName is enough.
+            }
+        }
+        return false;
+    }
+
+    private boolean matchesSendDisabledWorld(@Nullable String name) {
+        if (name == null || name.isEmpty()) {
+            return false;
+        }
+        if (sendDisabledWorlds.contains(name)) {
+            return true;
+        }
+        int colon = name.indexOf(':');
+        return colon >= 0 && sendDisabledWorlds.contains(name.substring(colon + 1));
+    }
+
+    public void refreshNativeProtocol() {
+        boolean needsVia = SendPathOptimizer.needsViaTranslation(this);
+        this.nativeProtocol = !needsVia;
+        if (nativeProtocol) {
+            SendPathOptimizer.disablePreViaSendEncoder(user);
+        }
+    }
+
     @Override
     public @Nullable UUID getWorldUID() {
         return platformPlayer != null ? platformPlayer.getWorld().getUID() : null;
@@ -1000,6 +1058,9 @@ public class GrimPlayer implements GrimUser {
         resetItemUsageOnItemUpdate = config.getBooleanElse("reset-item-usage-on-item-update", true);
         resetItemUsageOnSlotChange = config.getBooleanElse("reset-item-usage-on-slot-change", true);
         resetItemUsageOnItemUse = config.getBooleanElse("reset-item-usage-on-item-use", true);
+        sendChecksEnabled = GrimAPI.INSTANCE.getConfigManager().isSendChecksEnabled();
+        sendDisabledWorlds = GrimAPI.INSTANCE.getConfigManager().getSendDisabledWorlds();
+        refreshNativeProtocol();
         // reload all checks
         for (AbstractCheck value : checkManager.allChecks.values()) value.reload();
         // reload punishment manager

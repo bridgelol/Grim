@@ -217,7 +217,11 @@ max-ping-out-of-flying: 1000
 max-ping-firework-boost: 1000
 
 # Marqueurs de schéma — ne modifier qu'en sachant ce que l'on fait.
-#   config-flavor:  V2 = build Grim 2.x, V3 = Grim 3.x. Le plugin refuse de
+#   packet-listeners:
+    send-checks: true
+    send-disabled-worlds: []
+
+config-flavor:  V2 = build Grim 2.x, V3 = Grim 3.x. Le plugin refuse de
 #                   charger une config dont le flavor ne correspond pas à son
 #                   propre build : une config V3 ouverte par un jar V2 échoue
 #                   immédiatement au lieu de fusionner silencieusement dans
@@ -237,4 +241,4 @@ max-ping-firework-boost: 1000
 update-permission-ticks: -1
 
 config-flavor: V2
-config-version: 11
+config-version: 12
