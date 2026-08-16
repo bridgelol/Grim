@@ -10,6 +10,7 @@ import ac.grim.grimac.utils.data.*;
 import ac.grim.grimac.utils.inventory.Inventory;
 import ac.grim.grimac.utils.latency.CompensatedWorld;
 import ac.grim.grimac.utils.math.VectorUtils;
+import ac.grim.grimac.utils.anticheat.SendPathOptimizer;
 import ac.grim.grimac.utils.nmsutil.*;
 import com.github.retrooper.packetevents.PacketEvents;
 import com.github.retrooper.packetevents.event.PacketListenerAbstract;
@@ -597,9 +598,26 @@ public class CheckManagerListener extends PacketListenerAbstract {
 
     @Override
     public void onPacketSend(PacketSendEvent event) {
-        if (event.getConnectionState() != ConnectionState.PLAY) return;
+        ConnectionState state = event.getConnectionState();
+        if (state != ConnectionState.PLAY && state != ConnectionState.CONFIGURATION) {
+            return;
+        }
         GrimPlayer player = GrimAPI.INSTANCE.getPlayerDataManager().getPlayer(event.getUser());
         if (player == null) return;
+
+        // Native clients have no pre-Via encoder; run that send work here once.
+        if (player.isNativeProtocol()) {
+            SendPathOptimizer.disablePreViaSendEncoder(event.getUser());
+            if (state == ConnectionState.PLAY) {
+                SendPathOptimizer.handleWindowAndBundle(player, event);
+            }
+            if (player.shouldRunSendChecks()) {
+                player.checkManager.onPreViaPacketSend(event);
+            }
+        }
+
+        if (state != ConnectionState.PLAY) return;
+        if (!player.shouldRunSendChecks()) return;
         player.checkManager.onPacketSend(event);
     }
 

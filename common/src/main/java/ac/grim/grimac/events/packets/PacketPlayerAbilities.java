@@ -7,6 +7,7 @@ import ac.grim.grimac.player.GrimPlayer;
 import com.github.retrooper.packetevents.event.PacketReceiveEvent;
 import com.github.retrooper.packetevents.event.PacketSendEvent;
 import com.github.retrooper.packetevents.protocol.packettype.PacketType;
+import com.github.retrooper.packetevents.protocol.packettype.PacketTypeCommon;
 import com.github.retrooper.packetevents.wrapper.play.client.WrapperPlayClientPlayerAbilities;
 import com.github.retrooper.packetevents.wrapper.play.server.WrapperPlayServerPlayerAbilities;
 
@@ -28,6 +29,11 @@ public class PacketPlayerAbilities extends Check implements PacketCheck {
             WrapperPlayClientPlayerAbilities abilities = new WrapperPlayClientPlayerAbilities(event);
             player.isFlying = abilities.isFlying() && player.canFly;
         }
+    }
+
+    @Override
+    public PacketTypeCommon[] handledSendTypes() {
+        return new PacketTypeCommon[]{PacketType.Play.Server.PLAYER_ABILITIES};
     }
 
     @Override

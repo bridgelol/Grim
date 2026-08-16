@@ -13,6 +13,7 @@ import ac.grim.grimac.utils.data.VelocityData;
 import ac.grim.grimac.utils.math.Vector3dm;
 import com.github.retrooper.packetevents.event.PacketSendEvent;
 import com.github.retrooper.packetevents.protocol.packettype.PacketType;
+import com.github.retrooper.packetevents.protocol.packettype.PacketTypeCommon;
 import com.github.retrooper.packetevents.util.Vector3d;
 import com.github.retrooper.packetevents.wrapper.play.server.WrapperPlayServerEntityVelocity;
 import lombok.Getter;
@@ -40,6 +41,11 @@ public class KnockbackHandler extends Check implements PostPredictionCheck {
 
     public KnockbackHandler(GrimPlayer player) {
         super(player);
+    }
+
+    @Override
+    public PacketTypeCommon[] handledSendTypes() {
+        return new PacketTypeCommon[]{PacketType.Play.Server.ENTITY_VELOCITY};
     }
 
     @Override

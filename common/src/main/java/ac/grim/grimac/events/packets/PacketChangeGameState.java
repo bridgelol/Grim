@@ -7,6 +7,7 @@ import ac.grim.grimac.player.GrimPlayer;
 import com.github.retrooper.packetevents.event.PacketSendEvent;
 import com.github.retrooper.packetevents.manager.server.ServerVersion;
 import com.github.retrooper.packetevents.protocol.packettype.PacketType;
+import com.github.retrooper.packetevents.protocol.packettype.PacketTypeCommon;
 import com.github.retrooper.packetevents.protocol.player.ClientVersion;
 import com.github.retrooper.packetevents.protocol.player.GameMode;
 import com.github.retrooper.packetevents.wrapper.play.server.WrapperPlayServerChangeGameState;
@@ -14,6 +15,11 @@ import com.github.retrooper.packetevents.wrapper.play.server.WrapperPlayServerCh
 public class PacketChangeGameState extends Check implements PacketCheck {
     public PacketChangeGameState(GrimPlayer playerData) {
         super(playerData);
+    }
+
+    @Override
+    public PacketTypeCommon[] handledSendTypes() {
+        return new PacketTypeCommon[]{PacketType.Play.Server.CHANGE_GAME_STATE};
     }
 
     @Override
