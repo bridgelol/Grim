@@ -91,6 +91,8 @@ public class PacketEntityReplication extends Check implements PacketCheck {
 
     @Override
     public void onPacketReceive(PacketReceiveEvent event) {
+        // Continue a time-budgeted transaction flush so inbound movement isn't queued behind it.
+        player.latencyUtils.drainPending();
         // Teleports don't interpolate, duplicate 1.17 packets don't interpolate
         if (!isTickPacket(event.getPacketType())) return;
         player.compensatedEntities.entitiesRemovedThisTick.clear();
@@ -187,10 +189,16 @@ public class PacketEntityReplication extends Check implements PacketCheck {
             handleMoveEntity(event, move.getEntityId(), 0, 0, 0, move.getYaw() * 0.7111111F, move.getPitch() * 0.7111111F, true, false);
         } else if (event.getPacketType() == PacketType.Play.Server.ENTITY_METADATA) {
             WrapperPlayServerEntityMetadata entityMetadata = new WrapperPlayServerEntityMetadata(event);
+            if (!isSelfOrTracked(entityMetadata.getEntityId())) {
+                return;
+            }
             schedulePoseTransition(entityMetadata, event);
             player.latencyUtils.addRealTimeTask(player.lastTransactionSent.get(), () -> player.compensatedEntities.updateEntityMetadata(entityMetadata.getEntityId(), entityMetadata.getEntityMetadata()));
         } else if (event.getPacketType() == PacketType.Play.Server.ENTITY_EQUIPMENT) {
             WrapperPlayServerEntityEquipment equipment = new WrapperPlayServerEntityEquipment(event);
+            if (!isSelfOrTracked(equipment.getEntityId())) {
+                return;
+            }
             player.latencyUtils.addRealTimeTask(player.lastTransactionSent.get(), () -> player.compensatedEntities.updateEntityEquipment(equipment.getEntityId(), equipment.getEquipment()));
         }
 
@@ -224,6 +232,9 @@ public class PacketEntityReplication extends Check implements PacketCheck {
             });
         } else if (event.getPacketType() == PacketType.Play.Server.ENTITY_EFFECT) {
             WrapperPlayServerEntityEffect effect = new WrapperPlayServerEntityEffect(event);
+            if (!isSelfOrTracked(effect.getEntityId())) {
+                return;
+            }
 
             PotionType type = effect.getPotionType();
 
@@ -254,6 +265,9 @@ public class PacketEntityReplication extends Check implements PacketCheck {
             });
         } else if (event.getPacketType() == PacketType.Play.Server.REMOVE_ENTITY_EFFECT) {
             WrapperPlayServerRemoveEntityEffect effect = new WrapperPlayServerRemoveEntityEffect(event);
+            if (!isSelfOrTracked(effect.getEntityId())) {
+                return;
+            }
 
             if (isDirectlyAffectingPlayer(player, effect.getEntityId())) player.sendTransaction();
 
@@ -267,6 +281,9 @@ public class PacketEntityReplication extends Check implements PacketCheck {
             WrapperPlayServerUpdateAttributes attributes = new WrapperPlayServerUpdateAttributes(event);
 
             int entityID = attributes.getEntityId();
+            if (!isSelfOrTracked(entityID)) {
+                return;
+            }
 
             // The attributes for this entity is active, currently
             if (isDirectlyAffectingPlayer(player, entityID)) player.sendTransaction();
@@ -491,6 +508,9 @@ public class PacketEntityReplication extends Check implements PacketCheck {
 
     private void handleMoveEntity(PacketSendEvent event, int entityId, double deltaX, double deltaY, double deltaZ, Float yaw, Float pitch, boolean isRelative, boolean hasPos) {
         TrackerData data = player.compensatedEntities.getTrackedEntity(entityId);
+        if (player.isTrackCombatEntitiesOnly() && data == null) {
+            return;
+        }
 
         final boolean didNotSendPreWave = hasSentPreWavePacket.compareAndSet(false, true);
         if (didNotSendPreWave) player.sendTransaction();
@@ -563,6 +583,9 @@ public class PacketEntityReplication extends Check implements PacketCheck {
     }
 
     public void addEntity(int entityID, UUID uuid, EntityType type, Vector3d position, float xRot, float yRot, List<EntityData<?>> entityMetadata, int extraData) {
+        if (!shouldTrackType(type)) {
+            return;
+        }
         if (despawnedEntitiesThisTransaction.contains(entityID)) {
             player.sendTransaction();
         }
@@ -633,6 +656,48 @@ public class PacketEntityReplication extends Check implements PacketCheck {
                 target.completePoseTransition(newPose);
             });
         });
+    }
+
+    private boolean isSelfOrTracked(int entityId) {
+        if (entityId == player.entityID) {
+            return true;
+        }
+        if (!player.isTrackCombatEntitiesOnly()) {
+            return true;
+        }
+        return player.compensatedEntities.getTrackedEntity(entityId) != null
+                || player.compensatedEntities.getEntity(entityId) != null;
+    }
+
+    /**
+     * Combat-relevant types we still packet-track when
+     * {@code packet-listeners.track-combat-entities-only} is true. Farm mobs, armor
+     * stands, displays, and drops are skipped so their move packets cannot fill the
+     * Netty transaction queue.
+     */
+    private boolean shouldTrackType(EntityType type) {
+        if (!player.isTrackCombatEntitiesOnly()) {
+            return true;
+        }
+        if (type == EntityTypes.PLAYER
+                || type == EntityTypes.END_CRYSTAL
+                || type == EntityTypes.FISHING_BOBBER
+                || type == EntityTypes.TNT
+                || type == EntityTypes.PRIMED_TNT
+                || type == EntityTypes.PIG
+                || type == EntityTypes.STRIDER
+                || type == EntityTypes.HAPPY_GHAST
+                || type == EntityTypes.FIREWORK_ROCKET
+                || type == EntityTypes.FIREWORK) {
+            return true;
+        }
+        return EntityTypes.isTypeInstanceOf(type, EntityTypes.BOAT)
+                || EntityTypes.isTypeInstanceOf(type, EntityTypes.MINECART_ABSTRACT)
+                || EntityTypes.isTypeInstanceOf(type, EntityTypes.ABSTRACT_HORSE)
+                || EntityTypes.isTypeInstanceOf(type, EntityTypes.PROJECTILE_ABSTRACT)
+                || EntityTypes.isTypeInstanceOf(type, EntityTypes.ABSTRACT_ARROW)
+                || EntityTypes.isTypeInstanceOf(type, EntityTypes.ABSTRACT_FIREBALL)
+                || EntityTypes.isTypeInstanceOf(type, EntityTypes.ABSTRACT_WIND_CHARGE);
     }
 
     private boolean isDirectlyAffectingPlayer(GrimPlayer player, int entityID) {

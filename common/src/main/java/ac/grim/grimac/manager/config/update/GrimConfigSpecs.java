@@ -56,9 +56,12 @@ public final class GrimConfigSpecs {
      * <p>v11 → v12: adds {@code packet-listeners.send-checks} and
      * {@code packet-listeners.send-disabled-worlds}. No explicit migration;
      * the bundled default supplies the keys and auto-lift keeps user values.
+     *
+     * <p>v12 → v13: adds {@code packet-listeners.track-combat-entities-only}.
+     * No explicit migration; the bundled default supplies the key.
      */
     public static @NotNull ConfigUpdater.Spec mainConfig() {
-        return ConfigUpdater.Spec.builder("/config/", 12, ConfigUpdater.ConfigFlavor.V2)
+        return ConfigUpdater.Spec.builder("/config/", 13, ConfigUpdater.ConfigFlavor.V2)
                 .migration(10, ctx -> {
                     String typeRaw = ctx.input().getString("history.database.type");
                     String type = typeRaw == null ? null : typeRaw.trim().toUpperCase(Locale.ROOT);

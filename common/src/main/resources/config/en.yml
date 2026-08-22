@@ -235,6 +235,11 @@ packet-listeners:
     # Packet-tracked world names (and the suffix after ':' if namespaced).
     # Example for an AFK world: [ "lifesteal_afk" ]
     send-disabled-worlds: []
+    # When true, only players, vehicles, projectiles, TNT, fireworks, and end
+    # crystals are packet-tracked. Farm mobs, armor stands, and displays are
+    # ignored so their move packets cannot stall the Netty event loop. Reach
+    # vs mobs is not checked. Leave false to restore full entity tracking.
+    track-combat-entities-only: true
 
 # Schema markers — touch only if you know what you're doing.
 #   config-flavor:  V2 = Grim 2.x build, V3 = Grim 3.x. The plugin refuses
@@ -244,4 +249,4 @@ packet-listeners:
 #   config-version: bumped on every breaking shape change. Old configs
 #                   auto-migrate up via the bundled updater on next start.
 config-flavor: V2
-config-version: 12
+config-version: 13

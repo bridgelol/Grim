@@ -7,17 +7,22 @@ import ac.grim.grimac.utils.anticheat.MessageUtil;
 import ac.grim.grimac.utils.common.arguments.CommonGrimArguments;
 import ac.grim.grimac.utils.data.IntToObjectPair;
 
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.ListIterator;
 
 public class LatencyUtils {
+    private static final long DRAIN_BUDGET_NANOS = 1_000_000L; // 1ms; yield so inbound movement isn't stalled
+
     private final LinkedList<IntToObjectPair<Runnable>> transactionMap = new LinkedList<>();
     private final GrimPlayer player;
 
     // Built from transactionMap and cleared at start of every handleNettySyncTransaction() call
     // The actual usage scope of this variable's use is limited to within the synchronized block of handleNettySyncTransaction
     private final ArrayList<Runnable> tasksToRun = new ArrayList<>();
+    // Remainder of a time-budgeted flush. Drained on the next transaction or tick packet.
+    private final ArrayDeque<Runnable> pendingTasks = new ArrayDeque<>();
 
     public LatencyUtils(GrimPlayer player) {
         this.player = player;
@@ -86,15 +91,39 @@ public class LatencyUtils {
             }
 
             for (Runnable runnable : tasksToRun) {
-                try {
-                    runnable.run();
-                } catch (Exception e) {
-                    LogUtil.error("An error has occurred when running transactions for player: " + player.user.getName(), e);
-                    // Kick the player SO PEOPLE ACTUALLY REPORT PROBLEMS AND KNOW WHEN THEY HAPPEN
-                    if (CommonGrimArguments.KICK_ON_TRANSACTION_ERRORS.value()) {
-                        player.disconnect(MessageUtil.miniMessage(MessageUtil.replacePlaceholders(player, GrimAPI.INSTANCE.getConfigManager().getDisconnectPacketError())));
-                    }
+                pendingTasks.addLast(runnable);
+            }
+            tasksToRun.clear();
+        }
+        drainPending();
+    }
+
+    /**
+     * Run queued transaction tasks for at most {@link #DRAIN_BUDGET_NANOS}. Leftovers stay
+     * ordered in {@link #pendingTasks} and are continued on the next call. Must run on the
+     * player's Netty event loop (same thread as packet receive/send).
+     */
+    public void drainPending() {
+        final long start = System.nanoTime();
+        while (true) {
+            final Runnable runnable;
+            synchronized (this) {
+                runnable = pendingTasks.pollFirst();
+            }
+            if (runnable == null) {
+                return;
+            }
+            try {
+                runnable.run();
+            } catch (Exception e) {
+                LogUtil.error("An error has occurred when running transactions for player: " + player.user.getName(), e);
+                // Kick the player SO PEOPLE ACTUALLY REPORT PROBLEMS AND KNOW WHEN THEY HAPPEN
+                if (CommonGrimArguments.KICK_ON_TRANSACTION_ERRORS.value()) {
+                    player.disconnect(MessageUtil.miniMessage(MessageUtil.replacePlaceholders(player, GrimAPI.INSTANCE.getConfigManager().getDisconnectPacketError())));
                 }
+            }
+            if (System.nanoTime() - start >= DRAIN_BUDGET_NANOS) {
+                return;
             }
         }
     }

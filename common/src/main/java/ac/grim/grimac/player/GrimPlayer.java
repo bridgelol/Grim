@@ -285,6 +285,7 @@ public class GrimPlayer implements GrimUser {
     private @Nullable UserConnection viaUserConnection;
     private boolean sendChecksEnabled = true;
     private Set<String> sendDisabledWorlds = Set.of();
+    private boolean trackCombatEntitiesOnly = true;
     private boolean nativeProtocol; // client already on server protocol; pre-Via send encoder unused
     public boolean wasLastPredictionCompleteChecked;
     public boolean isJumping;
@@ -951,6 +952,10 @@ public class GrimPlayer implements GrimUser {
         return !isInSendDisabledWorld();
     }
 
+    public boolean isTrackCombatEntitiesOnly() {
+        return trackCombatEntitiesOnly;
+    }
+
     public boolean isInSendDisabledWorld() {
         if (sendDisabledWorlds.isEmpty()) {
             return false;
@@ -1060,6 +1065,7 @@ public class GrimPlayer implements GrimUser {
         resetItemUsageOnItemUse = config.getBooleanElse("reset-item-usage-on-item-use", true);
         sendChecksEnabled = GrimAPI.INSTANCE.getConfigManager().isSendChecksEnabled();
         sendDisabledWorlds = GrimAPI.INSTANCE.getConfigManager().getSendDisabledWorlds();
+        trackCombatEntitiesOnly = GrimAPI.INSTANCE.getConfigManager().isTrackCombatEntitiesOnly();
         refreshNativeProtocol();
         // reload all checks
         for (AbstractCheck value : checkManager.allChecks.values()) value.reload();

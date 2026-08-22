@@ -222,4 +222,4 @@ config-flavor:  V2 = build di Grim 2.x, V3 = Grim 3.x. Il plugin si rifiuta
 update-permission-ticks: -1
 
 config-flavor: V2
-config-version: 12
+config-version: 13

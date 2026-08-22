@@ -50,6 +50,8 @@ public class BaseConfigManager {
     private boolean sendChecksEnabled = true;
     @Getter
     private Set<String> sendDisabledWorlds = Set.of();
+    @Getter
+    private boolean trackCombatEntitiesOnly = true;
 
     // initialize the config
     public void load(ConfigManager config) {
@@ -90,6 +92,7 @@ public class BaseConfigManager {
         updatePermissionTicks = configuredUpdatePermissionTicks <= 0 ? -1 : configuredUpdatePermissionTicks;
 
         sendChecksEnabled = config.getBooleanElse("packet-listeners.send-checks", true);
+        trackCombatEntitiesOnly = config.getBooleanElse("packet-listeners.track-combat-entities-only", true);
         Set<String> disabledWorlds = new HashSet<>();
         List<String> configuredDisabledWorlds = config.getStringListElse("packet-listeners.send-disabled-worlds", List.of());
         if (configuredDisabledWorlds != null) {
