@@ -179,11 +179,19 @@ public class BasePacketWorldReader extends PacketListenerAbstract {
             }
         }
 
-        // Add a single runnable to prevent excessive memory use when there are lots of block changes
-        player.latencyUtils.addRealTimeTask(player.lastTransactionSent.get(), () -> {
-            for (WrapperPlayServerMultiBlockChange.EncodedBlock blockChange : blocks) {
-                player.compensatedWorld.updateBlock(blockChange.getX(), blockChange.getY(), blockChange.getZ(), blockChange.getBlockId());
-            }
-        });
+        // Slice into small tasks so LatencyUtils' 1ms drain can yield between generator
+        // / section floods. A single runnable that loops every EncodedBlock stalls Netty
+        // for the whole MULTI_BLOCK_CHANGE (skyblock island CompensatedWorld.updateBlock dumps).
+        final int batch = 16;
+        for (int start = 0; start < blocks.length; start += batch) {
+            final int from = start;
+            final int to = Math.min(start + batch, blocks.length);
+            player.latencyUtils.addRealTimeTask(player.lastTransactionSent.get(), () -> {
+                for (int i = from; i < to; i++) {
+                    WrapperPlayServerMultiBlockChange.EncodedBlock blockChange = blocks[i];
+                    player.compensatedWorld.updateBlock(blockChange.getX(), blockChange.getY(), blockChange.getZ(), blockChange.getBlockId());
+                }
+            });
+        }
     }
 }
