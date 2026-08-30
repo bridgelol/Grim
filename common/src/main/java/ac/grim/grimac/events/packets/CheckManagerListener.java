@@ -10,6 +10,7 @@ import ac.grim.grimac.utils.data.*;
 import ac.grim.grimac.utils.inventory.Inventory;
 import ac.grim.grimac.utils.latency.CompensatedWorld;
 import ac.grim.grimac.utils.math.VectorUtils;
+import ac.grim.grimac.utils.anticheat.PreViaSendDispatcher;
 import ac.grim.grimac.utils.anticheat.SendPathOptimizer;
 import ac.grim.grimac.utils.nmsutil.*;
 import com.github.retrooper.packetevents.PacketEvents;
@@ -605,14 +606,18 @@ public class CheckManagerListener extends PacketListenerAbstract {
         GrimPlayer player = GrimAPI.INSTANCE.getPlayerDataManager().getPlayer(event.getUser());
         if (player == null) return;
 
-        // Native clients have no pre-Via encoder; run that send work here once.
+        // Native clients drop the pre-Via encoder. Outbound runs the pre-Via encoder before this
+        // post-Via pass, so if it is still installed it already fired the pre-Via listeners for
+        // this packet; once it is gone, replay them here. That covers PreViaCheckManagerListener
+        // (window/bundle bookkeeping, pre-Via checks) and every global pre-Via listener, most
+        // importantly PacketSelfMetadataListener: Grim only learns that a riptide trident is being
+        // charged from the server's own entity flags, and without that resync every native
+        // riptide is an uncredited launch that Simulation sets back.
         if (player.isNativeProtocol()) {
+            boolean preViaEncoderRan = SendPathOptimizer.hasPreViaSendEncoder(event.getUser());
             SendPathOptimizer.disablePreViaSendEncoder(event.getUser());
-            if (state == ConnectionState.PLAY) {
-                SendPathOptimizer.handleWindowAndBundle(player, event);
-            }
-            if (player.shouldRunSendChecks()) {
-                player.checkManager.onPreViaPacketSend(event);
+            if (!preViaEncoderRan) {
+                PreViaSendDispatcher.INSTANCE.dispatch(event);
             }
         }
 

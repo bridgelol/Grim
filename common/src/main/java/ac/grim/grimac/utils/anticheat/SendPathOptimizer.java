@@ -52,6 +52,19 @@ public final class SendPathOptimizer {
     }
 
     /**
+     * Whether PacketEvents' pre-Via outbound encoder is still in this connection's pipeline.
+     * While it is, it fires the pre-Via listeners itself; once gone, the post-Via pass has to
+     * replay them (see {@link PreViaSendDispatcher}).
+     */
+    public static boolean hasPreViaSendEncoder(@NotNull User user) {
+        Object raw = user.getChannel();
+        if (!(raw instanceof Channel channel) || !channel.isOpen()) {
+            return false;
+        }
+        return channel.pipeline().get("pre-" + PacketEvents.ENCODER_NAME) != null;
+    }
+
+    /**
      * Drop PacketEvents' pre-Via outbound encoder. Safe to call repeatedly;
      * always runs on the connection's event loop.
      */

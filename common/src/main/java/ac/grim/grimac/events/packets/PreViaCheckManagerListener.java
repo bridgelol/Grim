@@ -42,11 +42,9 @@ public class PreViaCheckManagerListener extends PacketListenerAbstract {
         final GrimPlayer player = GrimAPI.INSTANCE.getPlayerDataManager().getPlayer(event.getUser());
         if (player == null) return;
 
-        // Native clients skip the pre-Via encoder entirely; CheckManagerListener
-        // runs the same send bookkeeping on the post-Via pass.
-        if (player.isNativeProtocol()) {
-            return;
-        }
+        // Reached from the pre-Via encoder while it is installed, or replayed by
+        // CheckManagerListener (PreViaSendDispatcher) once a native client has dropped it.
+        // Exactly one of the two happens per packet, so no native gate here.
 
         if (event.getConnectionState() == ConnectionState.CONFIGURATION) {
             if (player.shouldRunSendChecks()) {
