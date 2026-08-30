@@ -53,8 +53,6 @@ public final class SendPathOptimizer {
 
     /**
      * Whether PacketEvents' pre-Via outbound encoder is still in this connection's pipeline.
-     * While it is, it fires the pre-Via listeners itself; once gone, the post-Via pass has to
-     * replay them (see {@link PreViaSendDispatcher}).
      */
     public static boolean hasPreViaSendEncoder(@NotNull User user) {
         Object raw = user.getChannel();
@@ -62,6 +60,24 @@ public final class SendPathOptimizer {
             return false;
         }
         return channel.pipeline().get("pre-" + PacketEvents.ENCODER_NAME) != null;
+    }
+
+    /**
+     * Whether the post-Via pass must replay the pre-Via send listeners for the packet it is
+     * handling (see {@link PreViaSendDispatcher}). Call this AFTER
+     * {@link #disablePreViaSendEncoder(User)}.
+     * <p>
+     * Netty outbound order is post-Via PE encoder → via-encoder → pre-Via PE encoder, so at
+     * post-Via time the pre-Via encoder has not run yet for this packet: if it is still
+     * installed it will fire the pre-Via listeners itself, and if it is gone nothing else will.
+     * Without ViaVersion PacketEvents never installs a pre-Via encoder and instead runs the
+     * pre-Via pass from the post-Via encoder, so a replay there would double-process.
+     */
+    public static boolean shouldReplayPreViaSend(@NotNull User user) {
+        if (!ac.grim.grimac.utils.viaversion.ViaVersionUtil.isAvailable) {
+            return false;
+        }
+        return !hasPreViaSendEncoder(user);
     }
 
     /**

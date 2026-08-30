@@ -606,17 +606,17 @@ public class CheckManagerListener extends PacketListenerAbstract {
         GrimPlayer player = GrimAPI.INSTANCE.getPlayerDataManager().getPlayer(event.getUser());
         if (player == null) return;
 
-        // Native clients drop the pre-Via encoder. Outbound runs the pre-Via encoder before this
-        // post-Via pass, so if it is still installed it already fired the pre-Via listeners for
-        // this packet; once it is gone, replay them here. That covers PreViaCheckManagerListener
-        // (window/bundle bookkeeping, pre-Via checks) and every global pre-Via listener, most
-        // importantly PacketSelfMetadataListener: Grim only learns that a riptide trident is being
-        // charged from the server's own entity flags, and without that resync every native
-        // riptide is an uncredited launch that Simulation sets back.
+        // Native clients drop the pre-Via encoder, which is the only caller of the pre-Via
+        // listeners. Remove it (synchronous: we are on the event loop inside write(), so the
+        // in-flight packet skips it too) and then replay the pre-Via listeners here. That covers
+        // PreViaCheckManagerListener (window/bundle bookkeeping, pre-Via checks) and every global
+        // pre-Via listener, most importantly PacketSelfMetadataListener: Grim only learns that a
+        // riptide trident is being charged from the server's own entity flags, and without that
+        // resync every native riptide is an uncredited launch that Simulation sets back.
+        // SendPathOptimizer.shouldReplayPreViaSend documents the ordering and the no-Via case.
         if (player.isNativeProtocol()) {
-            boolean preViaEncoderRan = SendPathOptimizer.hasPreViaSendEncoder(event.getUser());
             SendPathOptimizer.disablePreViaSendEncoder(event.getUser());
-            if (!preViaEncoderRan) {
+            if (SendPathOptimizer.shouldReplayPreViaSend(event.getUser())) {
                 PreViaSendDispatcher.INSTANCE.dispatch(event);
             }
         }

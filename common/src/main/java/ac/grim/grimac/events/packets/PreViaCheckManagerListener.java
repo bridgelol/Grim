@@ -44,7 +44,8 @@ public class PreViaCheckManagerListener extends PacketListenerAbstract {
 
         // Reached from the pre-Via encoder while it is installed, or replayed by
         // CheckManagerListener (PreViaSendDispatcher) once a native client has dropped it.
-        // Exactly one of the two happens per packet, so no native gate here.
+        // Exactly one of the two happens per packet (the post-Via pass removes the encoder
+        // before deciding), so no native gate here.
 
         if (event.getConnectionState() == ConnectionState.CONFIGURATION) {
             if (player.shouldRunSendChecks()) {
